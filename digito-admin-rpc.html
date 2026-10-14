@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پنل مدیریت دیجی‌تو</title>
+<style>
+:root{font-family:Tahoma,Arial,sans-serif;color:#18221d;background:#f4f7f5}
+*{box-sizing:border-box}body{margin:0}header{background:linear-gradient(120deg,#087f5b,#20a879);color:white;padding:22px 16px}
+header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9;font-size:13px}
+main{max-width:1000px;margin:18px auto;padding:0 12px 32px}.card{background:white;border:1px solid #e0e9e4;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 5px 20px #102b1b0b}
+h2{font-size:18px;margin:0 0 14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-size:13px;color:#52645a;margin-bottom:6px}input,textarea,select{width:100%;padding:12px;border:1px solid #cedbd3;border-radius:10px;font:inherit;background:#fff;color:#18221d}
+textarea{min-height:90px;resize:vertical}.full{grid-column:1/-1}.checkrow{display:flex;align-items:center;gap:8px;margin:10px 0}.checkrow input{width:auto}
+button{font:inherit;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;background:#087f5b;color:#fff;font-weight:bold}
+button.secondary{background:#e7f4ed;color:#08734f}button.danger{background:#b42318}button:disabled{opacity:.5;cursor:wait}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.muted{color:#66776d;font-size:13px}.status{padding:11px 12px;border-radius:10px;margin:10px 0;white-space:pre-wrap;font-size:13px;background:#eef4f0}
+.status.error{background:#fff0ef;color:#a32119}.status.ok{background:#e8f7ee;color:#12633e}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.product{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #edf1ee}
+.product:last-child{border-bottom:0}.thumb{width:58px;height:58px;border-radius:12px;object-fit:cover;background:#eef4f0;display:grid;place-items:center;font-size:25px;overflow:hidden}
+.product h3{font-size:15px;margin:0 0 5px}.product p{font-size:12px;color:#65756b;margin:0 0 4px}.product .buttons{display:flex;gap:6px;flex-wrap:wrap}.product .buttons button{font-size:12px;padding:8px}
+.hidden{display:none!important}.pill{display:inline-block;background:#edf7f1;color:#08734f;border-radius:99px;padding:4px 8px;font-size:11px}
+.order-card{border:1px solid #e4ece7;border-radius:14px;padding:14px;margin:12px 0;background:#fff}.order-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.order-items{font-size:13px;line-height:1.9;background:#f7faf8;border-radius:10px;padding:10px;margin:10px 0}.order-meta{font-size:13px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}.order-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.order-controls select{padding:9px;border:1px solid #dce8e0;border-radius:9px;background:#fff}.order-controls button{padding:9px 12px}.pill.pending{background:#fff2d9;color:#8a5b00}.pill.processing{background:#e5f1ff;color:#1557a6}.pill.shipped{background:#eee8ff;color:#5736a6}.pill.completed{background:#e4f8eb;color:#12633e}.pill.cancelled{background:#ffe9e7;color:#a32119}@media(max-width:600px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.product{grid-template-columns:48px 1fr}.thumb{width:48px;height:48px}.product .buttons{grid-column:1/-1}.product .buttons button{flex:1}}
+</style>
+</head>
+<body>
+<header><h1>🛍️ پنل مدیریت دیجی‌تو</h1><p>مدیریت کالاها — دسترسی نوشتن فقط برای حساب مدیر مجاز است.</p></header>
+<main>
+<section id="loginCard" class="card">
+<h2>ورود مدیر</h2>
+<p class="muted">نام کاربری مدیر را وارد کن. رمز عبور در Supabase بررسی می‌شود.</p>
+<form id="loginForm" class="grid">
+<div class="full"><label for="username">نام کاربری</label><input id="username" autocomplete="username" required placeholder="admin"></div>
+<div class="full"><label for="password">رمز عبور</label><input id="password" type="password" autocomplete="current-password" required placeholder="رمز حساب مدیر"></div>
+<div class="full"><button id="loginBtn" type="submit">ورود به پنل</button></div>
+</form>
+<div id="loginStatus" class="status hidden"></div>
+</section>
+
+<section id="adminApp" class="hidden">
+<div class="card topline"><div><strong>وضعیت پنل: متصل</strong><p id="who" class="muted"></p></div><div class="actions"><button id="refreshBtn" class="secondary" type="button">تازه‌سازی کالاها</button><button id="logoutBtn" class="danger" type="button">خروج</button></div></div>
+<section class="card">
+<h2 id="formTitle">افزودن محصول جدید</h2>
+<form id="productForm" class="grid">
+<input id="productId" type="hidden">
+<div><label for="name">نام محصول *</label><input id="name" required maxlength="180"></div>
+<div><label for="category">دسته‌بندی *</label><input id="category" required value="دیجیتال"></div>
+<div><label for="price">قیمت (تومان) *</label><input id="price" type="number" min="0" step="1" required value="0"></div>
+<div><label for="stock">موجودی *</label><input id="stock" type="number" min="0" step="1" required value="0"></div>
+<div><label for="emoji">ایموجی محصول</label><input id="emoji" value="🛍️" maxlength="20"></div>
+<div><label for="tag">برچسب</label><input id="tag" placeholder="مثلاً پرفروش"></div>
+<div><label for="rating">امتیاز نمایشی</label><input id="rating" value="⭐ ۴.۵"></div>
+<div><label for="image_url">نشانی تصویر (URL)</label><input id="image_url" type="url" placeholder="https://..."></div>
+<div class="full"><label for="description">توضیحات</label><textarea id="description"></textarea></div>
+<label class="checkrow full"><input id="active" type="checkbox" checked> محصول در فروشگاه نمایش داده شود</label>
+<div class="full actions"><button id="saveBtn" type="submit">ذخیره محصول</button><button id="cancelEditBtn" class="secondary hidden" type="button">لغو ویرایش</button><button id="clearBtn" class="secondary" type="button">پاک‌کردن فرم</button></div>
+</form>
+<div id="appStatus" class="status hidden"></div>
+</section>
+<section class="card">
+<div class="topline"><h2>فهرست محصولات</h2><span id="count" class="pill">۰ محصول</span></div>
+<div id="productsList" class="muted">برای بارگذاری محصولات، وارد پنل شو.</div>
+</section>
+<section class="card">
+<div class="topline"><h2>📦 سفارش‌های مشتریان</h2><button id="refreshOrdersBtn" class="secondary" type="button">تازه‌سازی سفارش‌ها</button></div>
+<p class="muted">اطلاعات سفارش فقط برای حساب مدیر نمایش داده می‌شود. لغو سفارش، موجودی رزروشده را برمی‌گرداند.</p>
+<div id="ordersStatus" class="status hidden"></div>
+<div id="ordersList" class="muted">برای مشاهده سفارش‌ها، وارد پنل شو.</div>
+</section>
+</section>
+<p class="muted">امنیت: کلید این فایل، کلید عمومی (publishable) است. هرگز کلید secret یا service_role را در HTML قرار نده. محدودیت افزودن/ویرایش/حذف باید با RLS دیتابیس اعمال شود.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(() => {
+  const SUPABASE_URL = 'https://mbidoodbihrwsyrpkuok.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_laC7Fz0vr5SqzBxvmI2lLQ_7wiRUqhY';
+  const ADMIN_EMAIL = 'amirdehghan13211308@gmail.com';
+  const ADMIN_USERNAME = 'admin';
+  const ADMIN_UID = '0d759aab-ea0b-4fb5-bcad-14d78027f1e4';
+  const $ = id => document.getElementById(id);
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  let currentUser = null;
+  let products = [];
+  let orders = [];
+  const orderStatuses = {pending:'در انتظار بررسی',processing:'در حال آماده‌سازی',shipped:'ارسال‌شده',completed:'تکمیل‌شده',cancelled:'لغوشده'};
+
+  function status(id, message, isError=false) {
+    const el = $(id); el.textContent = message; el.classList.remove('hidden','error','ok');
+    el.classList.add(isError ? 'error' : 'ok');
+  }
+  function clearStatus(id) { $(id).classList.add('hidden'); }
+  function faNum(n) { return Number(n || 0).toLocaleString('fa-IR'); }
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function showAdmin(user) {
+    currentUser = user; $('loginCard').classList.add('hidden'); $('adminApp').classList.remove('hidden');
+    $('who').textContent = 'حساب مدیر: ' + (user.email || '');
+    loadProducts();
+    loadOrders();
+  }
+  function renderOrders() {
+    if (!orders.length) { $('ordersList').textContent='هنوز سفارشی ثبت نشده است.'; return; }
+    $('ordersList').innerHTML = orders.map(o => {
+      let items = Array.isArray(o.items) ? o.items : [];
+      const itemHtml = items.map(it => `<div>• ${escapeHtml(it.name || ('محصول #' + (it.product_id ?? '')))} × ${faNum(it.quantity)} — ${faNum(it.line_total ?? (Number(it.price||0)*Number(it.quantity||0)))} تومان</div>`).join('');
+      const statusOptions = Object.entries(orderStatuses).map(([value,label]) => `<option value="${value}" ${o.status===value?'selected':''}>${label}</option>`).join('');
+      const date = o.created_at ? new Date(o.created_at).toLocaleString('fa-IR') : '—';
+      const locked = o.status === 'cancelled';
+      return `<article class="order-card"><div class="order-head"><strong>سفارش ${escapeHtml(o.id)}</strong><span class="pill ${escapeHtml(o.status)}">${escapeHtml(orderStatuses[o.status] || o.status)}</span></div><div class="order-meta"><b>مشتری:</b> ${escapeHtml(o.customer_name)}
+<b>تلفن:</b> ${escapeHtml(o.phone)}
+<b>نشانی:</b> ${escapeHtml(o.address)}
+<b>یادداشت:</b> ${escapeHtml(o.customer_note || '—')}
+<b>تاریخ:</b> ${escapeHtml(date)}</div><div class="order-items">${itemHtml || 'جزئیات محصول ثبت نشده است.'}<hr><b>مبلغ کل: ${faNum(o.total_amount)} تومان</b></div><div class="order-controls"><label for="status-${escapeHtml(o.id)}">وضعیت سفارش:</label><select id="status-${escapeHtml(o.id)}" data-order-status="${escapeHtml(o.id)}" ${locked?'disabled':''}>${statusOptions}</select><button type="button" data-save-status="${escapeHtml(o.id)}" ${locked?'disabled':''}>ذخیره وضعیت</button></div>${locked?'<p class="muted">این سفارش لغو شده و موجودی آن برگشته است؛ وضعیت آن دوباره قابل تغییر نیست.</p>':''}</article>`;
+    }).join('');
+    $('ordersList').querySelectorAll('[data-save-status]').forEach(btn => btn.addEventListener('click', () => updateOrderStatus(btn.dataset.saveStatus)));
+  }
+  async function loadOrders() {
+    if (!currentUser || currentUser.id !== ADMIN_UID) return;
+    $('ordersList').textContent='در حال دریافت سفارش‌ها…';
+    const {data,error} = await client.from('orders').select('id,customer_name,phone,address,customer_note,items,total_amount,status,created_at').order('created_at',{ascending:false}).limit(100);
+    if (error) { $('ordersList').textContent='دریافت سفارش‌ها ناموفق بود: '+error.message; return; }
+    orders = data || [];
+    renderOrders();
+  }
+  async function updateOrderStatus(id) {
+    if (!currentUser || currentUser.id !== ADMIN_UID) { status('ordersStatus','دسترسی مدیر تأیید نشده است.',true); return; }
+    const order = orders.find(o => String(o.id) === String(id));
+    const select = document.querySelector(`[data-order-status="${CSS.escape(String(id))}"]`);
+    if (!order || !select) return;
+    const nextStatus = select.value;
+    if (!Object.prototype.hasOwnProperty.call(orderStatuses,nextStatus)) { status('ordersStatus','وضعیت انتخاب‌شده معتبر نیست.',true); return; }
+    if (order.status === 'cancelled') { status('ordersStatus','سفارش لغوشده قابل تغییر نیست.',true); return; }
+    if (nextStatus === 'cancelled' && !confirm('این سفارش لغو شود و موجودی رزروشده به محصولات برگردد؟')) { select.value=order.status; return; }
+    const buttons = $('ordersList').querySelectorAll(`[data-save-status="${CSS.escape(String(id))}"]`);
+    buttons.forEach(b => { b.disabled=true; b.textContent='در حال ذخیره…'; });
+    const {error} = await client.rpc('admin_update_digito_order_status', {p_order_id: id, p_status: nextStatus});
+    if (error) { status('ordersStatus','تغییر وضعیت ذخیره نشد: '+error.message,true); buttons.forEach(b=>{b.disabled=false;b.textContent='ذخیره وضعیت';}); return; }
+    status('ordersStatus', nextStatus==='cancelled' ? 'سفارش لغو شد و موجودی بازگردانده شد.' : 'وضعیت سفارش به‌روزرسانی شد.');
+    await loadOrders();
+    await loadProducts();
+  }
+
+  async function checkSession() {
+    const {data:{session}, error} = await client.auth.getSession();
+    if (error) return;
+    if (session?.user?.id === ADMIN_UID) showAdmin(session.user);
+  }
+  $('loginForm').addEventListener('submit', async e => {
+    e.preventDefault(); clearStatus('loginStatus');
+    const username = $('username').value.trim();
+    if (username !== ADMIN_USERNAME) { status('loginStatus','نام کاربری مدیر نادرست است.',true); return; }
+    $('loginBtn').disabled = true; $('loginBtn').textContent = 'در حال ورود…';
+    const {data,error} = await client.auth.signInWithPassword({email:ADMIN_EMAIL,password:$('password').value});
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'ورود به پنل';
+    if (error) { status('loginStatus','ورود انجام نشد: ' + error.message,true); return; }
+    if (data.user?.id !== ADMIN_UID) {
+      await client.auth.signOut();
+      status('loginStatus','این حساب اجازه ورود به پنل مدیریت را ندارد.',true); return;
+    }
+    $('password').value = ''; showAdmin(data.user);
+  });
+  $('logoutBtn').addEventListener('click', async () => {
+    await client.auth.signOut(); currentUser = null; $('adminApp').classList.add('hidden'); $('loginCard').classList.remove('hidden'); status('loginStatus','از حساب خارج شدی.'); 
+  });
+  $('refreshBtn').addEventListener('click', () => { loadProducts(); loadOrders(); });
+  $('refreshOrdersBtn').addEventListener('click', loadOrders);
+  $('clearBtn').addEventListener('click', resetForm);
+  $('cancelEditBtn').addEventListener('click', resetForm);
+
+  function resetForm() {
+    $('productForm').reset(); $('productId').value=''; $('category').value='دیجیتال'; $('price').value='0'; $('stock').value='0'; $('emoji').value='🛍️'; $('rating').value='⭐ ۴.۵'; $('active').checked=true;
+    $('formTitle').textContent='افزودن محصول جدید'; $('saveBtn').textContent='ذخیره محصول'; $('cancelEditBtn').classList.add('hidden'); clearStatus('appStatus');
+  }
+  $('productForm').addEventListener('submit', async e => {
+    e.preventDefault(); clearStatus('appStatus');
+    if (!currentUser || currentUser.id !== ADMIN_UID) { status('appStatus','دسترسی مدیر تأیید نشده است.',true); return; }
+    const payload = {
+      name:$('name').value.trim(), category:$('category').value.trim(), price:Number($('price').value),
+      stock:Number($('stock').value), emoji:$('emoji').value.trim() || '🛍️', tag:$('tag').value.trim(),
+      rating:$('rating').value.trim() || '⭐ ۴.۵', image_url:$('image_url').value.trim() || null,
+      description:$('description').value.trim(), active:$('active').checked
+    };
+    if (!payload.name || !payload.category || !Number.isFinite(payload.price) || payload.price < 0 || !Number.isInteger(payload.stock) || payload.stock < 0) {
+      status('appStatus','نام، دسته‌بندی، قیمت و موجودی را درست وارد کن.',true); return;
+    }
+    $('saveBtn').disabled=true; $('saveBtn').textContent='در حال ذخیره…';
+    let result;
+    const id = $('productId').value;
+    if (id) result = await client.from('products').update(payload).eq('id', Number(id)).select().single();
+    else result = await client.from('products').insert(payload).select().single();
+    $('saveBtn').disabled=false; $('saveBtn').textContent=id?'ذخیره ویرایش':'ذخیره محصول';
+    if (result.error) { status('appStatus','ذخیره انجام نشد: '+result.error.message,true); return; }
+    status('appStatus', id ? 'محصول ویرایش شد.' : 'محصول جدید اضافه شد.');
+    resetForm(); await loadProducts();
+  });
+
+  function editProduct(p) {
+    $('productId').value=p.id; $('name').value=p.name ?? ''; $('category').value=p.category ?? 'دیجیتال';
+    $('price').value=p.price ?? 0; $('stock').value=p.stock ?? 0; $('emoji').value=p.emoji ?? '🛍️';
+    $('tag').value=p.tag ?? ''; $('rating').value=p.rating ?? '⭐ ۴.۵'; $('image_url').value=p.image_url ?? '';
+    $('description').value=p.description ?? ''; $('active').checked=!!p.active;
+    $('formTitle').textContent='ویرایش محصول'; $('saveBtn').textContent='ذخیره ویرایش'; $('cancelEditBtn').classList.remove('hidden');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  async function deleteProduct(p) {
+    if (!confirm('محصول «'+p.name+'» حذف شود؟ این کار قابل برگشت نیست.')) return;
+    const {error} = await client.from('products').delete().eq('id',p.id);
+    if (error) { status('appStatus','حذف انجام نشد: '+error.message,true); return; }
+    status('appStatus','محصول حذف شد.'); await loadProducts();
+  }
+  async function loadProducts() {
+    if (!currentUser || currentUser.id !== ADMIN_UID) return;
+    $('productsList').textContent='در حال دریافت محصولات…';
+    const {data,error} = await client.from('products').select('*').order('created_at',{ascending:false});
+    if (error) { $('productsList').textContent='خطا در دریافت محصولات: '+error.message; return; }
+    products = data || []; $('count').textContent=faNum(products.length)+' محصول';
+    if (!products.length) { $('productsList').textContent='هنوز محصولی ثبت نشده است. از فرم بالا اولین محصول را اضافه کن.'; return; }
+    $('productsList').innerHTML = products.map(p => {
+      const image = p.image_url ? `<img class="thumb" src="${escapeHtml(p.image_url)}" alt="" onerror="this.outerHTML='<div class=&quot;thumb&quot;>${escapeHtml(p.emoji||'🛍️')}</div>'">` : `<div class="thumb">${escapeHtml(p.emoji||'🛍️')}</div>`;
+      return `<div class="product">${image}<div><h3>${escapeHtml(p.name)} ${p.active ? '' : '<span class="pill">مخفی</span>'}</h3><p>${escapeHtml(p.category||'')} · ${faNum(p.price)} تومان · موجودی: ${faNum(p.stock)}</p><p>${escapeHtml(p.tag||'')}</p></div><div class="buttons"><button class="secondary" data-edit="${escapeHtml(p.id)}">ویرایش</button><button class="danger" data-delete="${escapeHtml(p.id)}">حذف</button></div></div>`;
+    }).join('');
+    $('productsList').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => { const p=products.find(x=>String(x.id)===b.dataset.edit); if(p) editProduct(p); }));
+    $('productsList').querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', () => { const p=products.find(x=>String(x.id)===b.dataset.delete); if(p) deleteProduct(p); }));
+  }
+  checkSession();
+})();
+</script>
+</body>
+</html>
